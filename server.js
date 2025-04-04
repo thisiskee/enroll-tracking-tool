@@ -97,9 +97,19 @@ function parseCSV(filePath, callback) {
       const birthDate = row[10]; // K열의 생년월일
       if (birthDate) {
         try {
-          const birthYear = parseInt(birthDate.split('-')[0]); // YYYY-MM-DD 형식에서 연도 추출
+          const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number);
           const today = new Date();
-          age = today.getFullYear() - birthYear;
+          const todayYear = today.getFullYear();
+          const todayMonth = today.getMonth() + 1;
+          const todayDay = today.getDate();
+
+          age = todayYear - birthYear;
+          
+          // 생일이 지나지 않았으면 나이에서 1을 뺌
+          if (todayMonth < birthMonth || 
+              (todayMonth === birthMonth && todayDay < birthDay)) {
+            age--;
+          }
         } catch (error) {
           console.log('Age calculation error:', error);
         }
@@ -129,16 +139,36 @@ function parseCSV(filePath, callback) {
 }
 
 function formatStudentData(data) {
-  // 디버깅용 로그
-  console.log('Raw data:', data);
-  
+  // 나이 계산
+  let age = 0;
+  const birthDate = data[10]; // K열의 생년월일
+  if (birthDate) {
+    try {
+      const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number);
+      const today = new Date();
+      const todayYear = today.getFullYear();
+      const todayMonth = today.getMonth() + 1;
+      const todayDay = today.getDate();
+
+      age = todayYear - birthYear;
+      
+      // 생일이 지나지 않았으면 나이에서 1을 뺌
+      if (todayMonth < birthMonth || 
+          (todayMonth === birthMonth && todayDay < birthDay)) {
+        age--;
+      }
+    } catch (error) {
+      console.log('Age calculation error:', error);
+    }
+  }
+
   return {
     id: Date.now() + Math.floor(Math.random() * 1000),
-    name: data['가입 이름'] || '',        // I열
-    gender: data['성별'] || '',          // L열
-    age: 0,  // 생년월일 컬럼이 보이지 않아 일단 0으로
-    phone: data['가입 연락처'] || '',     // J열
-    email: data['지원서 이메일'] || '',   // K열
+    name: data[7],        // H열: 가입 이름
+    gender: data[11],     // L열: 성별 (지원서에서 직접 가져옴)
+    age: age,            // 계산된 나이
+    phone: data[8],       // I열: 가입 연락처
+    email: data[9],       // J열: 지원서 이메일
     status: 'applying',
     lastContactDate: new Date().toISOString().split('T')[0],
     updatedAt: new Date().toISOString()
